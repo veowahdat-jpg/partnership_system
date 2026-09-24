@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}تقسیم سود{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <h4 class="mb-0"><i class="bi bi-pie-chart"></i> تقسیم سود ماهانه (بخش سرویس)</h4>
+    <form class="d-flex align-items-center gap-2" method="GET">
+        <label class="form-label mb-0">ماه:</label>
+        <input type="month" name="month" value="{{ month }}" class="form-control form-control-sm" style="width:160px"
+               onchange="this.form.submit()">
+    </form>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <div class="stat-label">دریافتی سرویس</div>
+                <div class="stat-value" style="font-size:1.2rem">{{ "{:,.0f}".format(total_service) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card h-100" style="border-right-color:#0dcaf0">
+            <div class="card-body text-center">
+                <div class="stat-label">اضافه‌کاری</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#0dcaf0">{{ "{:,.0f}".format(total_overtime) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card h-100" style="border-right-color:#e53e3e">
+            <div class="card-body text-center">
+                <div class="stat-label">مصارف مشترک</div>
+                <div class="stat-value text-danger" style="font-size:1.2rem">{{ "{:,.0f}".format(common_exp) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card h-100" style="border-right-color:#fd7e14">
+            <div class="card-body text-center">
+                <div class="stat-label">مصرف شخصی (کل)</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#fd7e14">{{ "{:,.0f}".format(all_personal_exp) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card h-100" style="border-right-color:#38a169">
+            <div class="card-body text-center">
+                <div class="stat-label">سود خالص</div>
+                <div class="stat-value text-success" style="font-size:1.2rem">{{ "{:,.0f}".format(net) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card stat-card h-100" style="border-right-color:#805ad5">
+            <div class="card-body text-center">
+                <div class="stat-label">حصه پایه</div>
+                <div class="stat-value" style="font-size:1.2rem;color:#805ad5">{{ "{:,.0f}".format(base_share) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">حصه نهایی هر شریک</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>شریک</th>
+                        <th>حصه پایه</th>
+                        <th>برداشت شخصی (−)</th>
+                        <th>مصرف شخصی قابل جبران (+)</th>
+                        <th>حصه نهایی</th>
+                        <th>وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in partner_details %}
+                    <tr>
+                        <td class="fw-bold">{{ p.name }} <small class="text-muted">({{ p.code }})</small></td>
+                        <td>{{ "{:,.0f}".format(p.base) }}</td>
+                        <td class="text-danger">{{ "{:,.0f}".format(p.withdrawals) }}</td>
+                        <td class="text-success">{{ "{:,.0f}".format(p.personal_exp) }}</td>
+                        <td class="fw-bold fs-5 {% if p.final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:,.0f}".format(p.final) }}
+                        </td>
+                        <td>
+                            {% if p.final > 0 %}
+                                <span class="badge bg-success">طلبکار از شرکت</span>
+                            {% elif p.final < 0 %}
+                                <span class="badge bg-danger">بدهکار به شرکت</span>
+                            {% else %}
+                                <span class="badge bg-secondary">تسویه</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info mt-4">
+    <strong>منطق محاسبه (اصلاح‌شده):</strong><br>
+    ۱. (دریافتی سرویس + اضافه‌کاری) − مصارف مشترک − <strong>همه</strong> مصرف‌های شخصی قابل جبران = سود خالص<br>
+    ۲. سود خالص ÷ ۳ = حصه پایه هر شریک<br>
+    ۳. حصه پایه − برداشت شخصی + مصرف شخصی <strong>خودش</strong> = حصه نهایی
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}گزارش‌ها و چاپ{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <h4 class="mb-0"><i class="bi bi-printer"></i> گزارش و چاپ جزئیات هر شریک</h4>
+    <form class="d-flex align-items-center gap-2" method="GET">
+        <label class="form-label mb-0">ماه:</label>
+        <input type="month" name="month" value="{{ month }}" class="form-control form-control-sm" style="width:160px"
+               onchange="this.form.submit()">
+    </form>
+</div>
+
+<div class="row g-3">
+    {% for p in partners %}
+    <div class="col-md-4">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                {% if p.photo %}
+                <img src="{{ url_for('static', filename='uploads/' + p.photo) }}" 
+                     class="rounded-circle mb-3" style="width:80px; height:80px; object-fit:cover;">
+                {% else %}
+                <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width:80px; height:80px; font-size:2rem;">
+                    <i class="bi bi-person"></i>
+                </div>
+                {% endif %}
+                <h5>{{ p.full_name }}</h5>
+                <p class="text-muted">{{ p.partner_code or '' }}</p>
+                <a href="{{ url_for('partner_report', partner_id=p.id, month=month) }}" class="btn btn-primary">
+                    <i class="bi bi-file-earmark-text"></i> مشاهده و چاپ گزارش
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
