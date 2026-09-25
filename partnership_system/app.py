@@ -57,18 +57,27 @@ class DictRow(dict):
         except KeyError:
             raise AttributeError(key)
 
+
 class TursoConnection:
     """لایه سازگار با sqlite3 برای Turso (libsql-client)"""
     def __init__(self, client):
         self.client = client
+        self._last_cursor = None
 
     def execute(self, sql, params=()):
         result = self.client.execute(sql, list(params) if params else None)
-        return TursoCursor(result)
+        self._last_cursor = TursoCursor(result)
+        return self._last_cursor
+
+    def fetchone(self):
+        return self._last_cursor.fetchone() if self._last_cursor else None
+
+    def fetchall(self):
+        return self._last_cursor.fetchall() if self._last_cursor else []
 
     def executemany(self, sql, seq_of_params):
         for params in seq_of_params:
-            self.client.execute(sql, list(params))
+            self.execute(sql, params)
         return self
 
     def commit(self):
@@ -82,6 +91,7 @@ class TursoConnection:
 
     def cursor(self):
         return self
+
 
 class TursoCursor:
     def __init__(self, result):
