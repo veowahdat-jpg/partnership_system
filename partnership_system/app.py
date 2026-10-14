@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-سیستم مدیریت شراکت - فروش و سرویس
+سیستم اعتماد - فروش و سرویس
 نسخه حرفه‌ای با یوزرنیم و پسورد جداگانه
 """
 
@@ -57,7 +57,6 @@ class DictRow(dict):
         except KeyError:
             raise AttributeError(key)
 
-
 class TursoConnection:
     """لایه سازگار با sqlite3 برای Turso (libsql-client)"""
     def __init__(self, client):
@@ -91,7 +90,6 @@ class TursoConnection:
 
     def cursor(self):
         return self
-
 
 class TursoCursor:
     def __init__(self, result):
@@ -272,6 +270,11 @@ def init_db():
     except:
         pass
 
+    try:
+        c.execute("ALTER TABLE cash_deposits ADD COLUMN currency TEXT DEFAULT 'AFN'")
+    except:
+        pass
+
     # جدول اضافه‌کاری
     c.execute("""
         CREATE TABLE IF NOT EXISTS overtime (
@@ -295,6 +298,7 @@ def init_db():
             deposit_date TEXT NOT NULL,
             month TEXT NOT NULL,
             amount REAL NOT NULL,
+            currency TEXT DEFAULT 'AFN',
             description TEXT,
             created_by INTEGER,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -366,6 +370,7 @@ def init_db():
                 deposit_date TEXT NOT NULL,
                 month TEXT NOT NULL,
                 amount REAL NOT NULL,
+                currency TEXT DEFAULT 'AFN',
                 description TEXT,
                 created_by INTEGER,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
@@ -401,7 +406,7 @@ def init_db():
     conn.commit()
 
     # تنظیمات پیش‌فرض شرکت (همیشه)
-    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('company_name', 'شرکت اعتماد')")
+    c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('company_name', 'سیستم اعتماد')")
     c.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('logo', '')")
     conn.commit()
 
@@ -750,7 +755,7 @@ def sale_add():
     conn.commit()
     log_activity("ثبت فروش", f"محصول {product_id} - تعداد {quantity}")
     conn.close()
-    flash("فروش با موفقیت ثبت شد.", "success")
+    flash("فروش با موفقیت ثبت شد (دالر).", "success")
     return redirect(url_for("sales"))
 
 # ---------- مشتریان ----------
@@ -861,6 +866,7 @@ def payment_add():
     payment_type = request.form.get("payment_type", "نقد")
     status = request.form.get("status", "پرداخت کامل")
     notes = request.form.get("notes", "").strip()
+    force_save = request.form.get("force_save") == "1"
 
     if current_user.is_admin:
         received_by = int(request.form.get("received_by") or current_user.id)
@@ -874,14 +880,33 @@ def payment_add():
     month = payment_date[:7] if payment_date else datetime.now().strftime("%Y-%m")
 
     conn = get_db()
+
+    # هشدار تکراری: پرداخت همان مشتری در همان ماه
+    if not force_save:
+        dup = conn.execute(
+            "SELECT COUNT(*) as c FROM payments WHERE customer_id=? AND month=?",
+            (customer_id, month)
+        ).fetchone()
+        cnt = dup["c"] if dup else 0
+        if cnt and cnt > 0:
+            cust = conn.execute("SELECT name FROM customers WHERE id=?", (customer_id,)).fetchone()
+            cname = cust["name"] if cust else "این مشتری"
+            conn.close()
+            flash(
+                f"⚠ هشدار تکراری: برای «{cname}» در ماه {month} قبلاً {cnt} پرداخت ثبت شده. "
+                f"اگر مطمئن هستید دوباره ثبت کنید، گزینه «ثبت با وجود تکراری» را بزنید.",
+                "warning"
+            )
+            return redirect(url_for("payments", month=month, dup_customer=customer_id, dup_amount=amount))
+
     conn.execute("""
         INSERT INTO payments (payment_date, month, customer_id, amount, received_by, payment_type, status, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (payment_date, month, customer_id, amount, received_by, payment_type, status, notes))
     conn.commit()
-    log_activity("ثبت پرداخت سرویس", f"مبلغ {amount}")
+    log_activity("ثبت پرداخت سرویس", f"مبلغ {amount} افغانی")
     conn.close()
-    flash("پرداخت با موفقیت ثبت شد.", "success")
+    flash("پرداخت با موفقیت ثبت شد (افغانی).", "success")
     return redirect(url_for("payments"))
 
 # ---------- مصارف و برداشت ----------
@@ -1142,7 +1167,7 @@ def change_password():
 def settings():
     conn = get_db()
     if request.method == "POST":
-        company_name = request.form.get("company_name", "شرکت اعتماد").strip()
+        company_name = request.form.get("company_name", "سیستم اعتماد").strip()
         conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('company_name', ?)", (company_name,))
         
         if 'logo' in request.files:
@@ -1164,7 +1189,7 @@ def settings():
     logo = conn.execute("SELECT value FROM settings WHERE key='logo'").fetchone()
     conn.close()
     return render_template("settings.html",
-                           company_name=company_name["value"] if company_name else "شرکت اعتماد",
+                           company_name=company_name["value"] if company_name else "سیستم اعتماد",
                            logo=logo["value"] if logo else "")
 
 # ---------- مدیریت شرکا (نام + عکس) ----------
@@ -1269,18 +1294,31 @@ def partner_report(partner_id):
         SELECT * FROM expenses WHERE partner_id=? AND month=? ORDER BY expense_date
     """, (partner_id, month)).fetchall()
     
-    # محاسبه حصه
+    # محاسبه حصه (سرویس + اضافه‌کاری به افغانی)
     total_service = conn.execute(
         "SELECT COALESCE(SUM(amount),0) as t FROM payments WHERE month=?", (month,)
+    ).fetchone()["t"]
+    total_overtime = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) as t FROM overtime WHERE month=?", (month,)
     ).fetchone()["t"]
     common_exp = conn.execute(
         "SELECT COALESCE(SUM(amount),0) as t FROM expenses WHERE month=? AND expense_type='مصرف مشترک'", (month,)
     ).fetchone()["t"]
-    net = total_service - common_exp
+    all_personal = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) as t FROM expenses WHERE month=? AND expense_type='مصرف شخصی قابل جبران'", (month,)
+    ).fetchone()["t"]
+    net = total_service + total_overtime - common_exp - all_personal
     base_share = net / 3 if net else 0
+
+    # اضافه‌کاری ثبت‌شده به نام این شریک
+    partner_overtime = conn.execute(
+        "SELECT COALESCE(SUM(amount),0) as t FROM overtime WHERE month=? AND partner_id=?",
+        (month, partner_id)
+    ).fetchone()["t"]
     
     withdrawals = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) as t FROM expenses WHERE month=? AND partner_id=? AND expense_type='برداشت شخصی'",
+        """SELECT COALESCE(SUM(amount),0) as t FROM expenses
+           WHERE month=? AND partner_id=? AND expense_type IN ('برداشت شخصی','برداشت از دخل','مصرف از دخل')""",
         (month, partner_id)
     ).fetchone()["t"]
     personal_exp = conn.execute(
@@ -1294,7 +1332,7 @@ def partner_report(partner_id):
     return render_template("partner_report.html",
                            partner=partner,
                            month=month,
-                           company_name=company_name["value"] if company_name else "شرکت اعتماد",
+                           company_name=company_name["value"] if company_name else "سیستم اعتماد",
                            logo=logo["value"] if logo else "",
                            sales=sales,
                            sales_total=sales_total,
@@ -1304,7 +1342,9 @@ def partner_report(partner_id):
                            base_share=base_share,
                            withdrawals=withdrawals,
                            personal_exp=personal_exp,
-                           final_share=final_share)
+                           final_share=final_share,
+                           total_overtime=total_overtime,
+                           partner_overtime=partner_overtime)
 
 @app.route("/reports")
 @login_required
@@ -1379,26 +1419,40 @@ def cash():
     month = request.args.get("month", datetime.now().strftime("%Y-%m"))
     conn = get_db()
 
-    # ورودی‌ها
-    sales_in = conn.execute(
+    # فروش به دالر
+    sales_usd = conn.execute(
         "SELECT COALESCE(SUM(total_sale),0) as t FROM sales WHERE month=?", (month,)
     ).fetchone()["t"]
-    service_in = conn.execute(
+    # سرویس به افغانی
+    service_afn = conn.execute(
         "SELECT COALESCE(SUM(amount),0) as t FROM payments WHERE month=?", (month,)
     ).fetchone()["t"]
-    deposits = conn.execute(
-        "SELECT COALESCE(SUM(amount),0) as t FROM cash_deposits WHERE month=?", (month,)
-    ).fetchone()["t"]
-    total_in = sales_in + service_in + deposits
 
-    # خروجی‌ها از دخل
-    cash_out = conn.execute(
+    # واریز دستی — جداگانه دالر و افغانی
+    try:
+        dep_usd = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) as t FROM cash_deposits WHERE month=? AND currency='USD'", (month,)
+        ).fetchone()["t"]
+        dep_afn = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) as t FROM cash_deposits WHERE month=? AND (currency='AFN' OR currency IS NULL OR currency='')", (month,)
+        ).fetchone()["t"]
+    except Exception:
+        dep_all = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) as t FROM cash_deposits WHERE month=?", (month,)
+        ).fetchone()["t"]
+        dep_usd, dep_afn = 0, dep_all
+
+    # خروجی از دخل (افغانی فرض می‌شود مگر در شرح ذکر شده باشد)
+    cash_out_afn = conn.execute(
         """SELECT COALESCE(SUM(amount),0) as t FROM expenses
            WHERE month=? AND expense_type IN ('برداشت از دخل', 'مصرف از دخل')""",
         (month,)
     ).fetchone()["t"]
 
-    balance = total_in - cash_out
+    total_usd = sales_usd + dep_usd
+    total_afn = service_afn + dep_afn
+    balance_usd = total_usd  # برداشت از دخل فعلاً روی افغانی
+    balance_afn = total_afn - cash_out_afn
 
     deposit_list = conn.execute("""
         SELECT d.*, u.full_name as created_by_name
@@ -1416,12 +1470,15 @@ def cash():
     conn.close()
     return render_template("cash.html",
                            month=month,
-                           sales_in=sales_in,
-                           service_in=service_in,
-                           deposits=deposits,
-                           total_in=total_in,
-                           cash_out=cash_out,
-                           balance=balance,
+                           sales_usd=sales_usd,
+                           service_afn=service_afn,
+                           dep_usd=dep_usd,
+                           dep_afn=dep_afn,
+                           total_usd=total_usd,
+                           total_afn=total_afn,
+                           cash_out_afn=cash_out_afn,
+                           balance_usd=balance_usd,
+                           balance_afn=balance_afn,
                            deposit_list=deposit_list,
                            out_list=out_list)
 
@@ -1431,10 +1488,13 @@ def cash():
 def cash_deposit():
     deposit_date = request.form.get("deposit_date")
     amount = float(request.form.get("amount") or 0)
+    currency = request.form.get("currency", "AFN")
     description = request.form.get("description", "").strip()
     if amount <= 0:
         flash("مبلغ نامعتبر.", "danger")
         return redirect(url_for("cash"))
+    if currency not in ("USD", "AFN"):
+        currency = "AFN"
     month = deposit_date[:7] if deposit_date else datetime.now().strftime("%Y-%m")
     conn = get_db()
     closed = conn.execute("SELECT id FROM monthly_closings WHERE month=?", (month,)).fetchone()
@@ -1442,14 +1502,21 @@ def cash_deposit():
         conn.close()
         flash("این ماه بسته شده است.", "danger")
         return redirect(url_for("cash"))
-    conn.execute(
-        "INSERT INTO cash_deposits (deposit_date, month, amount, description, created_by) VALUES (?, ?, ?, ?, ?)",
-        (deposit_date, month, amount, description, current_user.id)
-    )
+    try:
+        conn.execute(
+            "INSERT INTO cash_deposits (deposit_date, month, amount, currency, description, created_by) VALUES (?, ?, ?, ?, ?, ?)",
+            (deposit_date, month, amount, currency, description, current_user.id)
+        )
+    except Exception:
+        # دیتابیس قدیمی بدون ستون currency
+        conn.execute(
+            "INSERT INTO cash_deposits (deposit_date, month, amount, description, created_by) VALUES (?, ?, ?, ?, ?)",
+            (deposit_date, month, amount, description + f" [{currency}]", current_user.id)
+        )
     conn.commit()
-    log_activity("واریز به دخل", f"{amount}")
+    log_activity("واریز به دخل", f"{amount} {currency}")
     conn.close()
-    flash("واریز به دخل ثبت شد.", "success")
+    flash(f"واریز به دخل ثبت شد ({currency}).", "success")
     return redirect(url_for("cash", month=month))
 
 # ---------- ثبت ماهانه ----------
@@ -1532,7 +1599,7 @@ if __name__ == "__main__":
     init_db()
     port = int(os.environ.get("PORT", 5000))
     print("=" * 50)
-    print("سیستم مدیریت شراکت آماده است")
+    print("سیستم اعتماد آماده است")
     print(f"آدرس: http://0.0.0.0:{port}")
     if USE_TURSO:
         print("دیتابیس: Turso (ابری - دائمی)")
