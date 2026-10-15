@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}مشتریان{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="bi bi-people"></i> لیست مشتریان سرویس</h4>
+    {% if current_user.is_admin %}
+    <a href="{{ url_for('customer_add') }}" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> افزودن مشتری
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>کد</th>
+                        <th>نام مشتری</th>
+                        <th>تلفن</th>
+                        <th>آدرس</th>
+                        <th>نوع سرویس</th>
+                        <th>مبلغ قرارداد</th>
+                        <th>توضیحات</th>
+                        {% if current_user.is_admin %}<th></th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in customers %}
+                    <tr>
+                        <td><code>{{ c.code }}</code></td>
+                        <td>{{ c.name }}</td>
+                        <td>{{ c.phone or '—' }}</td>
+                        <td>{{ c.address or '—' }}</td>
+                        <td>{{ c.service_type or '—' }}</td>
+                        <td class="fw-bold">{{ "{:,.0f}".format(c.amount or 0) }}</td>
+                        <td>{{ c.notes or '—' }}</td>
+                        {% if current_user.is_admin %}
+                        <td>
+                            <a href="{{ url_for('customer_edit', id=c.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="8" class="text-center text-muted py-4">مشتری‌ای ثبت نشده</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

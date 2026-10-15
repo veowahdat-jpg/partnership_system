@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}سیستم اعتماد{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a365d;
+            --primary-light: #2c5282;
+            --accent: #ed8936;
+            --success: #38a169;
+            --bg: #f7fafc;
+        }
+        body {
+            font-family: 'Tahoma', 'Segoe UI', Tahoma, sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light)) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        }
+        .navbar-brand, .nav-link { color: #fff !important; }
+        .nav-link:hover { color: var(--accent) !important; }
+        .nav-link.active { color: var(--accent) !important; font-weight: bold; }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            margin-bottom: 1.25rem;
+        }
+        .card-header {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            border-radius: 12px 12px 0 0 !important;
+        }
+        .stat-card {
+            border-right: 4px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
+        .stat-label { color: #718096; font-size: 0.9rem; }
+        .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+        .btn-primary:hover {
+            background: var(--primary-light);
+            border-color: var(--primary-light);
+        }
+        .table th {
+            background: #edf2f7;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge-role { font-size: 0.75rem; }
+        .sidebar-user {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-left: 10px;
+        }
+        .alert { border-radius: 10px; }
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: #a0aec0;
+            font-size: 0.85rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(26,54,93,0.15);
+        }
+        .table-responsive { border-radius: 10px; }
+        .low-stock { color: #e53e3e; font-weight: bold; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-building"></i> سیستم اعتماد
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="nav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> داشبورد
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'products' %}active{% endif %}" href="{{ url_for('products') }}">
+                            <i class="bi bi-box-seam"></i> مواد
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'sales' %}active{% endif %}" href="{{ url_for('sales') }}">
+                            <i class="bi bi-cart-check"></i> فروش
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'customers' %}active{% endif %}" href="{{ url_for('customers') }}">
+                            <i class="bi bi-people"></i> مشتریان
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'payments' %}active{% endif %}" href="{{ url_for('payments') }}">
+                            <i class="bi bi-cash-coin"></i> پرداخت سرویس
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'expenses' %}active{% endif %}" href="{{ url_for('expenses') }}">
+                            <i class="bi bi-wallet2"></i> مصارف
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'overtime' %}active{% endif %}" href="{{ url_for('overtime') }}">
+                            <i class="bi bi-clock-history"></i> اضافه‌کاری
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'cash' %}active{% endif %}" href="{{ url_for('cash') }}">
+                            <i class="bi bi-safe"></i> دخل
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'monthly' %}active{% endif %}" href="{{ url_for('monthly') }}">
+                            <i class="bi bi-calendar-check"></i> ثبت ماهانه
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'profit' %}active{% endif %}" href="{{ url_for('profit') }}">
+                            <i class="bi bi-pie-chart"></i> تقسیم سود
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">
+                            <i class="bi bi-printer"></i> گزارش و چاپ
+                        </a>
+                    </li>
+                    {% if current_user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'partners' %}active{% endif %}" href="{{ url_for('partners') }}">
+                            <i class="bi bi-people-fill"></i> شرکا
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'settings' %}active{% endif %}" href="{{ url_for('settings') }}">
+                            <i class="bi bi-gear"></i> تنظیمات
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'logs' %}active{% endif %}" href="{{ url_for('logs') }}">
+                            <i class="bi bi-journal-text"></i> لاگ
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex align-items-center text-white">
+                    <div class="sidebar-user">
+                        <i class="bi bi-person-circle"></i>
+                        {{ current_user.full_name }}
+                        <span class="badge bg-warning text-dark badge-role">{{ 'ادمین' if current_user.is_admin else 'شریک' }}</span>
+                    </div>
+                    <a href="{{ url_for('change_password') }}" class="btn btn-sm btn-outline-light me-2" title="تغییر رمز">
+                        <i class="bi bi-key"></i>
+                    </a>
+                    <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light">
+                        <i class="bi bi-box-arrow-left"></i> خروج
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="container-fluid py-4 px-3 px-md-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        سیستم اعتماد &copy; ۱۴۰۵ — سیستم اعتماد
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

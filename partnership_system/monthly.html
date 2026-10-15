@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}ثبت ماهانه{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="bi bi-calendar-check"></i> ثبت و بستن حساب ماهانه</h4>
+</div>
+
+{% if current_user.is_admin %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">بستن ماه جاری / انتخابی</div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('monthly_close') }}" class="row g-3" onsubmit="return confirm('آیا از بستن این ماه مطمئن هستید؟ بعد از بستن، ثبت جدید برای این ماه محدود می‌شود.');">
+            <div class="col-md-3">
+                <label class="form-label">ماه</label>
+                <input type="month" name="month" class="form-control" required value="{{ now_month if now_month else '' }}" id="close_month">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">یادداشت (اختیاری)</label>
+                <input type="text" name="notes" class="form-control">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">بستن و ثبت ماه</button>
+            </div>
+        </form>
+        <div class="form-text mt-2">با بستن ماه، خلاصه تمام حساب‌ها ذخیره می‌شود و قابل مشاهده خواهد بود.</div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">لیست ماه‌های ثبت‌شده</div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ماه</th>
+                        <th>تاریخ بستن</th>
+                        <th>بسته توسط</th>
+                        <th>فروش</th>
+                        <th>سرویس</th>
+                        <th>موجودی دخل</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in closings %}
+                    <tr>
+                        <td class="fw-bold">{{ c.month }}</td>
+                        <td>{{ c.closed_at }}</td>
+                        <td>{{ c.closed_by_name or '—' }}</td>
+                        <td>{{ "{:,.0f}".format(c.total_sales) }}</td>
+                        <td>{{ "{:,.0f}".format(c.total_service) }}</td>
+                        <td>{{ "{:,.0f}".format(c.cash_balance) }}</td>
+                        <td>
+                            <a href="{{ url_for('monthly_view', month=c.month) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> جزئیات
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">هنوز ماهی بسته نشده</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('close_month').value = new Date().toISOString().slice(0,7);
+</script>
+{% endblock %}

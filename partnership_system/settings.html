@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}تنظیمات شرکت{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-gear"></i> تنظیمات شرکت و لوگو
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">نام شرکت</label>
+                        <input type="text" name="company_name" class="form-control" value="{{ company_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">لوگو شرکت</label>
+                        {% if logo %}
+                        <div class="mb-2">
+                            <img src="{{ url_for('static', filename='uploads/' + logo) }}" alt="لوگو" style="max-height:80px; border-radius:8px;">
+                        </div>
+                        {% endif %}
+                        <input type="file" name="logo" class="form-control" accept="image/*">
+                        <div class="form-text">فرمت‌های مجاز: png, jpg, jpeg, gif, webp (حداکثر ۲ مگابایت)</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> ذخیره تنظیمات
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

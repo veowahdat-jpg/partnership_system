@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}دخل (صندوق){% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <h4 class="mb-0"><i class="bi bi-safe"></i> دخل / صندوق</h4>
+    <form class="d-flex align-items-center gap-2" method="GET">
+        <input type="month" name="month" value="{{ month }}" class="form-control form-control-sm" style="width:160px"
+               onchange="this.form.submit()">
+    </form>
+</div>
+
+<div class="alert alert-info py-2">
+    <strong>واحد پول:</strong> فروش = <span class="text-success">دالر ($)</span> &nbsp;|&nbsp;
+    سرویس و اضافه‌کاری و مصارف = <span class="text-primary">افغانی (؋)</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body text-center">
+                <div class="stat-label">فروش (دالر)</div>
+                <div class="stat-value text-success" style="font-size:1.3rem">${{ "{:,.2f}".format(sales_usd) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100" style="border-right-color:#ed8936">
+            <div class="card-body text-center">
+                <div class="stat-label">سرویس (افغانی)</div>
+                <div class="stat-value" style="font-size:1.3rem;color:#ed8936">؋{{ "{:,.0f}".format(service_afn) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100" style="border-right-color:#38a169">
+            <div class="card-body text-center">
+                <div class="stat-label">موجودی دالر</div>
+                <div class="stat-value text-success" style="font-size:1.3rem">${{ "{:,.2f}".format(balance_usd) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100" style="border-right-color:#805ad5">
+            <div class="card-body text-center">
+                <div class="stat-label">موجودی افغانی</div>
+                <div class="stat-value" style="font-size:1.3rem;color:#805ad5">؋{{ "{:,.0f}".format(balance_afn) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">جمع ورودی دالر: ${{ "{:,.2f}".format(total_usd) }}</div>
+            <div class="card-body small">فروش ${{ "{:,.2f}".format(sales_usd) }} + واریز دستی ${{ "{:,.2f}".format(dep_usd) }}</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">جمع ورودی افغانی: ؋{{ "{:,.0f}".format(total_afn) }}</div>
+            <div class="card-body small">سرویس ؋{{ "{:,.0f}".format(service_afn) }} + واریز دستی ؋{{ "{:,.0f}".format(dep_afn) }} − خروج ؋{{ "{:,.0f}".format(cash_out_afn) }}</div>
+        </div>
+    </div>
+</div>
+
+{% if current_user.is_admin %}
+<div class="card mb-4">
+    <div class="card-header bg-success text-white">
+        <i class="bi bi-plus-circle"></i> واریز دستی به دخل (فقط ادمین)
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('cash_deposit') }}" class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">تاریخ</label>
+                <input type="date" name="deposit_date" class="form-control" required id="dep_date">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">مبلغ</label>
+                <input type="number" step="any" name="amount" class="form-control" required min="0.01">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">واحد پول</label>
+                <select name="currency" class="form-select" required>
+                    <option value="AFN">افغانی (؋)</option>
+                    <option value="USD">دالر ($)</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">شرح</label>
+                <input type="text" name="description" class="form-control" placeholder="مثلاً واریز سرمایه">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-success w-100">واریز</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">واریزهای دستی</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>تاریخ</th><th>مبلغ</th><th>واحد</th><th>شرح</th><th>توسط</th></tr></thead>
+                    <tbody>
+                    {% for d in deposit_list %}
+                    <tr>
+                        <td>{{ d.deposit_date }}</td>
+                        <td>{{ "{:,.2f}".format(d.amount) }}</td>
+                        <td>
+                            {% if d.currency == 'USD' %}<span class="badge bg-success">$</span>
+                            {% else %}<span class="badge bg-primary">؋</span>{% endif %}
+                        </td>
+                        <td>{{ d.description or '—' }}</td>
+                        <td>{{ d.created_by_name or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted">موردی نیست</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">برداشت / مصرف از دخل (افغانی)</div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>تاریخ</th><th>نوع</th><th>شریک</th><th>مبلغ</th></tr></thead>
+                    <tbody>
+                    {% for o in out_list %}
+                    <tr>
+                        <td>{{ o.expense_date }}</td>
+                        <td>{{ o.expense_type }}</td>
+                        <td>{{ o.partner_name or '—' }}</td>
+                        <td class="text-danger">؋{{ "{:,.0f}".format(o.amount) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted">موردی نیست</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var el = document.getElementById('dep_date');
+if (el) el.value = new Date().toISOString().slice(0,10);
+</script>
+{% endblock %}

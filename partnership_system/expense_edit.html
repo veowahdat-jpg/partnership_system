@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}ویرایش مصرف{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-pencil"></i> ویرایش مصرف / برداشت</div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">نوع</label>
+                        <select name="expense_type" class="form-select" required>
+                            {% for t in ['مصرف مشترک', 'برداشت شخصی', 'مصرف شخصی قابل جبران', 'برداشت از دخل', 'مصرف از دخل'] %}
+                            <option value="{{ t }}" {% if exp.expense_type == t %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">مبلغ</label>
+                        <input type="number" step="any" name="amount" class="form-control" required value="{{ exp.amount }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">شرح</label>
+                        <input type="text" name="description" class="form-control" required value="{{ exp.description or '' }}">
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">ذخیره</button>
+                        <a href="{{ url_for('expenses') }}" class="btn btn-outline-secondary">انصراف</a>
+                    </div>
+                </form>
+                <div class="form-text mt-3 text-danger">توجه: ویرایش فقط تا ۱ ساعت بعد از ثبت مجاز است.</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

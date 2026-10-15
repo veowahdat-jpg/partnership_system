@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}ویرایش شریک{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person-gear"></i> ویرایش اطلاعات شریک
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="text-center mb-4">
+                        {% if partner.photo %}
+                        <img src="{{ url_for('static', filename='uploads/' + partner.photo) }}" 
+                             class="rounded-circle" style="width:120px; height:120px; object-fit:cover;">
+                        {% else %}
+                        <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center"
+                             style="width:120px; height:120px; font-size:3rem;">
+                            <i class="bi bi-person"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">نام کامل شریک</label>
+                        <input type="text" name="full_name" class="form-control" value="{{ partner.full_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">کد شریک</label>
+                        <input type="text" name="partner_code" class="form-control" value="{{ partner.partner_code or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">عکس شریک</label>
+                        <input type="file" name="photo" class="form-control" accept="image/*">
+                        <div class="form-text">اگر عکسی انتخاب نکنید، عکس قبلی باقی می‌ماند.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">ذخیره</button>
+                        <a href="{{ url_for('partners') }}" class="btn btn-outline-secondary">انصراف</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
